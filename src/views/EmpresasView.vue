@@ -32,7 +32,25 @@ const novaEmpresa = ref({
   site: ''
 })
 
-const BASE_URL = "http://localhost:3000"
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000"
+
+async function atualizarStatusVisita(empresa: any, event: MouseEvent) {
+  try {
+    // Não previne o comportamento padrão do link para permitir a navegação
+    const response = await axios.put(`${BASE_URL}/update-status/${empresa.id}`, {
+      concluido: !empresa.concluido
+    });
+    
+    // Atualiza o status localmente
+    const index = api.value.findIndex((item: any) => item.id === empresa.id);
+    if (index !== -1) {
+      api.value[index].concluido = !empresa.concluido;
+      atualizarPaginacao();
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error);
+  }
+}
 
 async function pegarEmpresas(){
   try {
@@ -126,16 +144,27 @@ onMounted(() => {
             class="company-card"
           >
             <div class="company-info">
-              <h3 class="company-name">{{ empresa.empresa }}</h3>
-              <a 
-                :href="empresa.site" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                class="company-link"
-              >
-                {{ empresa.site }}
-                <span class="external-icon">↗</span>
-              </a>
+              <div class="company-details">
+                <h3 class="company-name">{{ empresa.empresa }}</h3>
+                <div class="site-container">
+                  <a 
+                    :href="empresa.site" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="company-link"
+                    @click="atualizarStatusVisita(empresa, $event)"
+                    :class="{ 'visited': empresa.concluido }"
+                  >
+                    {{ empresa.site }}
+                  </a>
+                  <div class="visited-status" :class="{ 'is-visited': empresa.concluido }">
+                    <div class="checkbox" :class="{ 'checked': empresa.concluido }">
+                      <span class="checkmark">✓</span>
+                    </div>
+                    <span class="status-text">{{ empresa.concluido ? 'Visitado' : 'Não visitado' }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -381,12 +410,24 @@ onMounted(() => {
   gap: 1rem;
 }
 
+.company-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .company-name {
   font-size: 1.1rem;
   font-weight: 600;
   color: #2d3748;
   margin: 0;
-  flex: 1;
+}
+
+.site-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
 .company-link {
@@ -406,9 +447,45 @@ onMounted(() => {
   text-decoration: underline;
 }
 
-.external-icon {
-  font-size: 0.75rem;
-  opacity: 0.7;
+.visited-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #718096;
+  font-size: 0.85rem;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.checkbox.checked {
+  background-color: #48bb78;
+  border-color: #48bb78;
+}
+
+.checkmark {
+  color: white;
+  font-size: 12px;
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s ease;
+}
+
+.checkbox.checked .checkmark {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.visited-status.is-visited {
+  color: #48bb78;
 }
 
 /* Pagination */
